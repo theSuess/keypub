@@ -1,0 +1,34 @@
+type User {
+  id: ID!
+  username: String!
+  name: String
+  keys: [PublicKey!]!
+}
+
+type PublicKey {
+  id: ID!
+  content: String!
+  name: String!
+  user: User!
+}
+
+input NewUser {
+  name: String
+  username: String!
+}
+
+input NewKey {
+  content: String!
+  name: String!
+  userId: ID!
+}
+
+type Query {
+  users: [User!]!
+  user(username: String!): User
+}
+
+type Mutation {
+  createUser(input: NewUser!): User!
+  addKey(input: NewKey!): PublicKey!
+}
