@@ -9,8 +9,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/theSuess/keypub/pkg/graph/generated"
+	logf "github.com/theSuess/keypub/pkg/log"
 	"github.com/theSuess/keypub/pkg/model"
 )
+
+var log = logf.Log.WithName("server")
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	id, _ := uuid.NewRandom()
@@ -42,6 +45,7 @@ func (r *publicKeyResolver) User(ctx context.Context, obj *model.PublicKey) (*mo
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	log.Info("Fetching all users")
 	users := []*model.User{}
 	err := r.DB.Find(&users).Error
 	return users, err
