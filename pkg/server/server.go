@@ -8,6 +8,7 @@ import (
 	"github.com/theSuess/keypub/pkg/graph/generated"
 	logf "github.com/theSuess/keypub/pkg/log"
 	"github.com/theSuess/keypub/pkg/model"
+	"github.com/theSuess/keypub/pkg/service"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -77,7 +78,11 @@ func (s *Server) Run() error {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(Logger())
-	resolver := &graph.Resolver{DB: db}
+	resolver := &graph.Resolver{
+		UserService:  service.User(db),
+		KeyService:   service.Key(db),
+		GroupService: service.Group(db),
+	}
 	r.POST("/query", auth.Middleware(), graphqlHandler(resolver))
 	r.GET("/playground", playgroundHandler())
 	r.POST("/auth", auth.Authenticate(db))

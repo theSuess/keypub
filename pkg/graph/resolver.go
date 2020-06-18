@@ -1,13 +1,14 @@
 package graph
 
-// This file will not be regenerated automatically.
-//
-// It serves as dependency injection for your app, add any dependencies you require here.
-
 import (
-	"github.com/jinzhu/gorm"
+	logf "github.com/theSuess/keypub/pkg/log"
+	"github.com/theSuess/keypub/pkg/service"
 )
 
+var log = logf.Log.WithName("resolver")
+
 type Resolver struct {
-	DB *gorm.DB
+	UserService  *service.UserService
+	GroupService *service.GroupService
+	KeyService   *service.KeyService
 }

@@ -8,45 +8,35 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/theSuess/keypub/pkg/auth"
 	"github.com/theSuess/keypub/pkg/graph/generated"
-	logf "github.com/theSuess/keypub/pkg/log"
 	"github.com/theSuess/keypub/pkg/model"
 )
 
 func (r *groupResolver) Users(ctx context.Context, obj *model.Group) ([]*model.User, error) {
-	users := []*model.User{}
-	err := r.DB.Model(obj).Related(&users, "Users").Error
-	return users, err
+	return r.GroupService.UsersOf(obj)
 }
 
 func (r *groupResolver) Owners(ctx context.Context, obj *model.Group) ([]*model.User, error) {
-	owners := []*model.User{}
-	err := r.DB.Model(obj).Related(&owners, "Owners").Error
-	return owners, err
+	return r.GroupService.OwnersOf(obj)
 }
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	id, _ := uuid.NewRandom()
 	user := &model.User{
-		ID:       id.String(),
 		Name:     input.Name,
 		Username: input.Username,
 	}
-	err := r.DB.Create(user).Error
+	err := r.UserService.Register(user)
 	return user, err
 }
 
 func (r *mutationResolver) AddKey(ctx context.Context, input model.NewKey) (*model.PublicKey, error) {
-	id, _ := uuid.NewRandom()
 	key := &model.PublicKey{
-		ID:      id.String(),
 		Name:    input.Name,
 		Content: input.Content,
 		UserID:  input.UserID,
 	}
-	err := r.DB.Create(&key).Error
+	err := r.KeyService.AddKey(key)
 	return key, err
 }
 
@@ -55,21 +45,15 @@ func (r *mutationResolver) CreateGroup(ctx context.Context, input model.NewGroup
 	if claim == nil {
 		return nil, errors.New("only authenticated users can perform this action")
 	}
-	id, _ := uuid.NewRandom()
 	group := &model.Group{
-		ID:   id.String(),
 		Name: input.Name,
-		Users: []*model.User{
-			{ID: claim.UserID},
-		},
-		Owners: []*model.User{
-			{ID: claim.UserID},
-		},
 	}
-	if err := r.DB.Create(group).Error; err != nil {
+	user, err := r.UserService.ByID(claim.UserID)
+	if err != nil {
 		return nil, err
 	}
-	return group, nil
+	err = r.GroupService.CreateGroup(group, user)
+	return group, err
 }
 
 func (r *mutationResolver) JoinGroup(ctx context.Context, input model.JoinGroup) (*model.Group, error) {
@@ -77,16 +61,12 @@ func (r *mutationResolver) JoinGroup(ctx context.Context, input model.JoinGroup)
 }
 
 func (r *publicKeyResolver) User(ctx context.Context, obj *model.PublicKey) (*model.User, error) {
-	user := &model.User{}
-	err := r.DB.Where(&model.User{ID: obj.UserID}).First(user).Error
-	return user, err
+	return r.KeyService.Owner(obj)
 }
 
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	log.Info("Fetching all users")
-	users := []*model.User{}
-	err := r.DB.Find(&users).Error
-	return users, err
+	return r.UserService.FindAll(-1, -1)
 }
 
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
@@ -95,26 +75,17 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 
 func (r *queryResolver) Groups(ctx context.Context) ([]*model.Group, error) {
 	log.Info("Fetching all groups")
-	groups := []*model.Group{}
-	err := r.DB.Find(&groups).Error
-	return groups, err
+	return r.GroupService.FindAll(-1, -1)
 }
 
 func (r *userResolver) Keys(ctx context.Context, obj *model.User) ([]*model.PublicKey, error) {
-	keys := []*model.PublicKey{}
-	err := r.DB.Where(&model.PublicKey{UserID: obj.ID}).Find(&keys).Error
-	return keys, err
+	limit, offset := resolvePagination(nil, nil)
+	return r.UserService.KeysOf(obj, limit, offset)
 }
 
 func (r *userResolver) Groups(ctx context.Context, obj *model.User, first *int) ([]*model.Group, error) {
-	groups := []*model.Group{}
-	var err error
-	if first != nil {
-		err = r.DB.Model(obj).Limit(*first).Related(&groups, "Groups").Error
-	} else {
-		err = r.DB.Model(obj).Related(&groups, "Groups").Error
-	}
-	return groups, err
+	limit, offset := resolvePagination(first, nil)
+	return r.UserService.GroupsOf(obj, limit, offset)
 }
 
 // Group returns generated.GroupResolver implementation.
@@ -137,11 +108,3 @@ type mutationResolver struct{ *Resolver }
 type publicKeyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-var log = logf.Log.WithName("server")
