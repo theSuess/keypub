@@ -3,6 +3,7 @@ type User {
   username: String!
   name: String
   keys: [PublicKey!]!
+  groups(first: Int): [Group!]!
 }
 
 type PublicKey {
@@ -10,6 +11,13 @@ type PublicKey {
   content: String!
   name: String!
   user: User!
+}
+
+type Group {
+  id: ID!
+  name: String!
+  users: [User!]!
+  owners: [User!]!
 }
 
 input NewUser {
@@ -23,12 +31,26 @@ input NewKey {
   userId: ID!
 }
 
+input NewGroup {
+  name: String!
+}
+
+input JoinGroup {
+  userId: ID!
+  groupId: ID!
+}
+
 type Query {
   users: [User!]!
   user(username: String!): User
+
+  groups: [Group!]!
 }
 
 type Mutation {
   createUser(input: NewUser!): User!
   addKey(input: NewKey!): PublicKey!
+
+  createGroup(input: NewGroup!): Group!
+  joinGroup(input: JoinGroup!): Group!
 }

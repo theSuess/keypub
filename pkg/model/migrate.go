@@ -5,5 +5,5 @@ import (
 )
 
 func RunMigrations(db *gorm.DB) {
-	db.AutoMigrate(&User{}, &PublicKey{})
+	db.AutoMigrate(&User{}, &PublicKey{}, &Group{})
 }

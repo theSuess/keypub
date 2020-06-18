@@ -2,6 +2,15 @@
 
 package model
 
+type JoinGroup struct {
+	UserID  string `json:"userId"`
+	GroupID string `json:"groupId"`
+}
+
+type NewGroup struct {
+	Name string `json:"name"`
+}
+
 type NewKey struct {
 	Content string `json:"content"`
 	Name    string `json:"name"`

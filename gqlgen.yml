@@ -47,9 +47,17 @@ models:
     fields:
       keys:
         resolver: true
+      groups:
+        resolver: true
   PublicKey:
     fields:
       user:
+        resolver: true
+  Group:
+    fields:
+      users:
+        resolver: true
+      owners:
         resolver: true
   ID:
     model:
